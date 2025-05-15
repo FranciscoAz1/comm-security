@@ -8,7 +8,7 @@ fn main() {
     let _input: BaseInputs = env::read();
 
     // TODO: do something with the input
-    prinntln!("BaseInputs: {:?}", _input);
+    //prinntln!("BaseInputs: {:?}", _input);
     let output = BaseJournal::default();
 
     // write public output to the journal

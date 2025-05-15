@@ -7,7 +7,7 @@ fn main() {
     // read the input
 
     let mut _input: FireInputs = env::read();
-    prinntln!("FireInputs: {:?}", _input);
+    //prinntln!("FireInputs: {:?}", _input);
     // TODO: do something with the input
     let output = ReportJournal::default();
 

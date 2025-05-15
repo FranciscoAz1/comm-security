@@ -6,7 +6,7 @@ use risc0_zkvm::guest::env;
 fn main() {
     // read the input
     let mut _input: BaseInputs = env::read();
-    println!("BaseInputs: {:?}", _input);
+    //println!("BaseInputs: {:?}", _input);
     // TODO: do something with the input
     let output = BaseJournal::default();
 
