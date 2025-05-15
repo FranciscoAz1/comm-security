@@ -14,6 +14,7 @@ pub async fn join_game(idata: FormData) -> String {
     // TO DO: Rebuild the receipt
 
     // Uncomment the following line when you are ready to send the receipt
+    // proofs
     //send_receipt(Command::Fire, receipt).await
     // Comment out the following line when you are ready to send the receipt
     "OK".to_string()
@@ -25,6 +26,7 @@ pub async fn fire(idata: FormData) -> String {
         Err(err) => return err,
     };
     // TO DO: Rebuild the receipt
+    //same as win because it verifies there are no boats
     // Uncomment the following line when you are ready to send the receipt
     //send_receipt(Command::Fire, receipt).await
     // Comment out the following line when you are ready to send the receipt
