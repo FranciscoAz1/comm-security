@@ -9,12 +9,14 @@ use axum::{
     routing::{get, post},
     Router,
 };
+use axum::debug_handler;
 use tokio::signal;
 use nanoid::nanoid;
 
 use host::{fire, join_game, report, wave, win, FormData};
 use std::net::SocketAddr;
 
+#[debug_handler]
 async fn index() -> Html<String> {
     render_html(None, None, None, None, None, None)
 }
@@ -29,6 +31,7 @@ fn process_input_data(input_data: FormData) -> FormData {
     }
 }
 
+#[debug_handler]
 async fn submit(Form(input_data): Form<FormData>) -> Html<String> {
     let gameid = input_data.gameid.clone();
     let fleetid = input_data.fleetid.clone();
@@ -89,6 +92,7 @@ fn render_html(
 
 #[tokio::main]
 async fn main() {
+    // Create state that implements Send + Sync for use with Axum
     let app = Router::new()
         .route("/", get(index))
         .route("/submit", post(submit));
