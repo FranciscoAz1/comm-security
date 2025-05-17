@@ -2,9 +2,26 @@
 
 use fleetcore::{BaseInputs, Command, FireInputs};
 use methods::{FIRE_ELF, JOIN_ELF, REPORT_ELF, WAVE_ELF, WIN_ELF};
-use risc0_zkvm::{default_prover, ExecutorEnv};
+use risc0_zkvm::{default_prover, ExecutorEnv, Receipt};
+use std::sync::Arc;
 
 use crate::{unmarshal_data, unmarshal_fire, unmarshal_report, send_receipt, FormData};
+
+// Helper function to generate a proof without threading issues
+fn generate_proof(input: &(impl serde::Serialize + std::fmt::Debug), method_elf: &[u8], action_name: &str) -> Receipt {
+    // Create the executor environment
+    let env = ExecutorEnv::builder()
+        .write(input)
+        .unwrap()
+        .build()
+        .unwrap();
+
+    // Get the prover and generate the receipt
+    let prover = default_prover();
+    prover.prove(env, method_elf)
+        .expect(&format!("Failed to generate zk-SNARK proof for {} action", action_name))
+        .receipt
+}
 
 pub async fn join_game(idata: FormData) -> String {
     let (gameid, fleetid, board, random) = match unmarshal_data(&idata) {
@@ -20,18 +37,8 @@ pub async fn join_game(idata: FormData) -> String {
         random: random.clone(),
     };
     
-    // Create the executor environment
-    let env = ExecutorEnv::builder()
-        .write(&input)
-        .unwrap()
-        .build()
-        .unwrap();
-
-    // Get the prover and generate the receipt
-    let prover = default_prover();
-    let receipt = prover.prove(env, methods::JOIN_ELF)
-        .expect("Failed to generate zk-SNARK proof for join action")
-        .receipt;
+    // Generate proof
+    let receipt = generate_proof(&input, methods::JOIN_ELF, "join");
 
     // Send the receipt to the blockchain
     send_receipt(Command::Join, receipt).await
@@ -56,18 +63,8 @@ pub async fn fire(idata: FormData) -> String {
         pos,
     };
     
-    // Create the executor environment
-    let env = ExecutorEnv::builder()
-        .write(&input)
-        .unwrap()
-        .build()
-        .unwrap();
-
-    // Get the prover and generate the receipt
-    let prover = default_prover();
-    let receipt = prover.prove(env, methods::FIRE_ELF)
-        .expect("Failed to generate zk-SNARK proof for fire action")
-        .receipt;
+    // Generate proof
+    let receipt = generate_proof(&input, methods::FIRE_ELF, "fire");
 
     // Send the receipt to the blockchain
     send_receipt(Command::Fire, receipt).await
@@ -92,18 +89,8 @@ pub async fn report(idata: FormData) -> String {
         pos,
     };
     
-    // Create the executor environment
-    let env = ExecutorEnv::builder()
-        .write(&input)
-        .unwrap()
-        .build()
-        .unwrap();
-
-    // Get the prover and generate the receipt
-    let prover = default_prover();
-    let receipt = prover.prove(env, methods::REPORT_ELF)
-        .expect("Failed to generate zk-SNARK proof for report action")
-        .receipt;
+    // Generate proof
+    let receipt = generate_proof(&input, methods::REPORT_ELF, "report");
 
     // Send the receipt to the blockchain
     send_receipt(Command::Report, receipt).await
@@ -123,18 +110,8 @@ pub async fn wave(idata: FormData) -> String {
         random: random.clone(),
     };
     
-    // Create the executor environment
-    let env = ExecutorEnv::builder()
-        .write(&input)
-        .unwrap()
-        .build()
-        .unwrap();
-
-    // Get the prover and generate the receipt
-    let prover = default_prover();
-    let receipt = prover.prove(env, methods::WAVE_ELF)
-        .expect("Failed to generate zk-SNARK proof for wave action")
-        .receipt;
+    // Generate proof
+    let receipt = generate_proof(&input, methods::WAVE_ELF, "wave");
 
     // Send the receipt to the blockchain
     send_receipt(Command::Wave, receipt).await
@@ -154,18 +131,8 @@ pub async fn win(idata: FormData) -> String {
         random: random.clone(),
     };
     
-    // Create the executor environment
-    let env = ExecutorEnv::builder()
-        .write(&input)
-        .unwrap()
-        .build()
-        .unwrap();
-
-    // Get the prover and generate the receipt
-    let prover = default_prover();
-    let receipt = prover.prove(env, methods::WIN_ELF)
-        .expect("Failed to generate zk-SNARK proof for win action")
-        .receipt;
+    // Generate proof
+    let receipt = generate_proof(&input, methods::WIN_ELF, "win");
 
     // Send the receipt to the blockchain
     send_receipt(Command::Win, receipt).await

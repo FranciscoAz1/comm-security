@@ -9,8 +9,9 @@ mod game_actions;
 
 use fleetcore::{Command, CommunicationData};
 use std::error::Error;
+use std::sync::Arc;
 use risc0_zkvm::Receipt;
-use risc0_zkvm::{default_prover, ExecutorEnv};
+use risc0_zkvm::ExecutorEnv;
 
 pub use game_actions::{join_game, fire, report, wave, win};
 

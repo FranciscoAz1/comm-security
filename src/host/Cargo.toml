@@ -7,7 +7,7 @@ edition = "2021"
 methods = { path = "../methods" }
 risc0-zkvm = { version = "2.0.2" }
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-axum = "0.7.7"
+axum = { version = "0.7.7", features = ["macros"] }
 tokio = { version = "1.40.0", features = ["full"] }
 serde = { version = "1.0.210", features = ["derive"] }
 serde_derive = "1.0"
