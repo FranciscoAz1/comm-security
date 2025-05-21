@@ -154,7 +154,56 @@ fn handle_join(shared: &SharedData, input_data: &CommunicationData) -> String {
 }
 
 fn handle_fire(shared: &SharedData, input_data: &CommunicationData) -> String {
-     // TO DO:
+    // Verify the receipt is valid for the FIRE action
+    if input_data.receipt.verify(FIRE_ID).is_err() {
+        shared.tx.send("Attempting to fire with invalid receipt".to_string()).unwrap();
+        return "Could not verify receipt".to_string();
+    }
+    
+    // Decode the journal data from the receipt
+    let data: FireJournal = input_data.receipt.journal.decode().unwrap();
+    let mut gmap = shared.gmap.lock().unwrap();
+    
+    // Check if the game exists
+    let game = match gmap.get_mut(&data.gameid) {
+        Some(game) => game,
+        None => {
+            shared.tx.send(format!("Game {} not found", data.gameid)).unwrap();
+            return "Game not found".to_string();
+        }
+    };
+    
+    // Check if it's this player's turn to fire
+    if game.next_player != Some(data.fleet.clone()) {
+        shared.tx.send(format!("Not {}'s turn to fire in game {}", data.fleet, data.gameid)).unwrap();
+        return "Not your turn".to_string();
+    }
+    
+    // Check if the target player exists in the game
+    if !game.pmap.contains_key(&data.target) {
+        shared.tx.send(format!("Target fleet {} not found in game {}", data.target, data.gameid)).unwrap();
+        return "Target not found".to_string();
+    }
+    
+    // Check that player is not targeting themselves
+    if data.fleet == data.target {
+        shared.tx.send(format!("Player {} tried to target themselves in game {}", data.fleet, data.gameid)).unwrap();
+        return "Cannot target yourself".to_string();
+    }
+    
+    // Update the player's board state
+    let player = game.pmap.get_mut(&data.fleet).unwrap();
+    player.current_state = data.board;
+    
+    // Update game state - next player should be the target to report hit/miss
+    game.next_player = Some(data.target.clone());
+    game.next_report = Some(data.fleet.clone());
+    
+    // Send notification about the fire action
+    let pos_str = xy_pos(data.pos);
+    shared.tx.send(format!("Player {} fired at position {} targeting {} in game {}", 
+        data.fleet, pos_str, data.target, data.gameid)).unwrap();
+    
     "OK".to_string()
 }
 

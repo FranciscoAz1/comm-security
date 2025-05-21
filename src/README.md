@@ -110,6 +110,6 @@ We'd love to hear from you on [Discord][discord] or [Twitter][twitter].
 [zkhack-iii]: https://www.youtube.com/watch?v=Yg_BGqj_6lg&list=PLcPzhUaCxlCgig7ofeARMPwQ8vbuD6hC5&index=5
 [zkvm-overview]: https://dev.risczero.com/zkvm
 
-
-
 hostile takeover
+
+docker exec -it chain0 bash cargo run --bin blockchain
