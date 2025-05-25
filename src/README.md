@@ -113,3 +113,4 @@ We'd love to hear from you on [Discord][discord] or [Twitter][twitter].
 hostile takeover
 
 docker exec -it chain0 bash cargo run --bin blockchain
+cargo install cargo-watch

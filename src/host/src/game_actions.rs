@@ -5,10 +5,14 @@ use methods::{FIRE_ELF, JOIN_ELF, REPORT_ELF, WAVE_ELF, WIN_ELF};
 use risc0_zkvm::{default_prover, ExecutorEnv, Receipt};
 use std::sync::Arc;
 
-use crate::{unmarshal_data, unmarshal_fire, unmarshal_report, send_receipt, FormData};
+use crate::{send_receipt, unmarshal_data, unmarshal_fire, unmarshal_report, FormData};
 
 // Helper function to generate a proof without threading issues
-fn generate_proof(input: &(impl serde::Serialize + std::fmt::Debug), method_elf: &[u8], action_name: &str) -> Receipt {
+fn generate_proof(
+    input: &(impl serde::Serialize + std::fmt::Debug),
+    method_elf: &[u8],
+    action_name: &str,
+) -> Receipt {
     // Create the executor environment
     let env = ExecutorEnv::builder()
         .write(input)
@@ -18,8 +22,12 @@ fn generate_proof(input: &(impl serde::Serialize + std::fmt::Debug), method_elf:
 
     // Get the prover and generate the receipt
     let prover = default_prover();
-    prover.prove(env, method_elf)
-        .expect(&format!("Failed to generate zk-SNARK proof for {} action", action_name))
+    prover
+        .prove(env, method_elf)
+        .expect(&format!(
+            "Failed to generate zk-SNARK proof for {} action",
+            action_name
+        ))
         .receipt
 }
 
@@ -36,7 +44,7 @@ pub async fn join_game(idata: FormData) -> String {
         board: board.clone(),
         random: random.clone(),
     };
-    
+    print!("Join game input: {:#?}", input);
     // Generate proof
     let receipt = generate_proof(&input, methods::JOIN_ELF, "join");
 
@@ -49,10 +57,10 @@ pub async fn fire(idata: FormData) -> String {
         Ok(values) => values,
         Err(err) => return err,
     };
-    
+
     // Calculate position from x and y coordinates (as a single byte)
     let pos = x * 10 + y;
-    
+
     // Create the input data for the zkVM
     let input = fleetcore::FireInputs {
         gameid: gameid.clone(),
@@ -62,7 +70,7 @@ pub async fn fire(idata: FormData) -> String {
         target: targetfleet.clone(),
         pos,
     };
-    
+
     // Generate proof
     let receipt = generate_proof(&input, methods::FIRE_ELF, "fire");
 
@@ -75,10 +83,10 @@ pub async fn report(idata: FormData) -> String {
         Ok(values) => values,
         Err(err) => return err,
     };
-    
+
     // Calculate position from x and y coordinates (as a single byte)
     let pos = x * 10 + y;
-    
+
     // Create the input data for the zkVM
     let input = fleetcore::FireInputs {
         gameid: gameid.clone(),
@@ -88,7 +96,7 @@ pub async fn report(idata: FormData) -> String {
         target: report.clone(), // We reuse the FireInputs struct with target field for report value
         pos,
     };
-    
+
     // Generate proof
     let receipt = generate_proof(&input, methods::REPORT_ELF, "report");
 
@@ -101,7 +109,7 @@ pub async fn wave(idata: FormData) -> String {
         Ok(values) => values,
         Err(err) => return err,
     };
-    
+
     // Create the input data for the zkVM
     let input = fleetcore::BaseInputs {
         gameid: gameid.clone(),
@@ -109,7 +117,7 @@ pub async fn wave(idata: FormData) -> String {
         board: board.clone(),
         random: random.clone(),
     };
-    
+
     // Generate proof
     let receipt = generate_proof(&input, methods::WAVE_ELF, "wave");
 
@@ -122,7 +130,7 @@ pub async fn win(idata: FormData) -> String {
         Ok(values) => values,
         Err(err) => return err,
     };
-    
+
     // Create the input data for the zkVM
     let input = fleetcore::BaseInputs {
         gameid: gameid.clone(),
@@ -130,7 +138,7 @@ pub async fn win(idata: FormData) -> String {
         board: board.clone(),
         random: random.clone(),
     };
-    
+
     // Generate proof
     let receipt = generate_proof(&input, methods::WIN_ELF, "win");
 

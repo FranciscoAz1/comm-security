@@ -4,6 +4,7 @@ use risc0_zkvm::sha::Digest;
 use sha2::{Digest as _, Sha256};
 
 fn main() {
+    //NOSSO!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     // Read the input
     let input: BaseInputs = env::read();
     
