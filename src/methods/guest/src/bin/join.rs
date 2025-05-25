@@ -6,13 +6,14 @@ use sha2::{Digest as _, Sha256};
 fn main() {
     // Read the input
     let input: BaseInputs = env::read();
-    
-    // Hash the board to create a commitment
+
+    // Hash both the random number and board to create a commitment (random first for better security)
     let mut hasher = Sha256::new();
+    hasher.update(input.random.as_bytes());
     hasher.update(&input.board);
     let board_hash: [u8; 32] = hasher.finalize().into();
     let board_digest = Digest::from(board_hash);
-    
+
     // Create the journal output with the data
     let output = BaseJournal {
         gameid: input.gameid,
