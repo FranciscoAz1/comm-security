@@ -291,7 +291,6 @@ fn handle_report(shared: &SharedData, input_data: &CommunicationData) -> String 
             return "Game not found".to_string();
         }
     };
-
     // Check if it's this player's turn to report
     if game.next_player != Some(data.fleet.clone()) {
         shared
@@ -315,6 +314,13 @@ fn handle_report(shared: &SharedData, input_data: &CommunicationData) -> String 
             .unwrap();
         return "No pending shot".to_string();
     }
+
+    // TODO: Check if position is the same as the fired position maybe not
+
+    // TODO: In case miss, verify if the hash in pmap matches the data.board, and data.board_next
+
+    // TODO: In case of hit, verify if the data.board matches pmap hash, anda data.board_next does not match
+    // TODO: What is data.board_next is a cheat?
 
     // Clone shooter before mutably borrowing game
     let shooter = game.next_report.as_ref().unwrap().clone();

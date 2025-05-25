@@ -19,6 +19,7 @@ fn main() {
     let mut next_board = input.board.clone();
 
     // For demonstration purposes, set the position to 1 to mark it as "shot"
+    // TODO: correct this logic based on actual game rules
     if input.pos < next_board.len() as u8 {
         let idx = input.pos as usize;
         next_board[idx] = 1;
