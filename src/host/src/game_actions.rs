@@ -44,7 +44,7 @@ pub async fn join_game(idata: FormData) -> String {
         board: board.clone(),
         random: random.clone(),
     };
-    print!("Join game input: {:#?}", input);
+    // print!("Join game input: {:#?}", input);
     // Generate proof
     let receipt = generate_proof(&input, methods::JOIN_ELF, "join");
 
