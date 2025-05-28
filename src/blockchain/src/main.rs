@@ -24,9 +24,28 @@ use tokio_stream::wrappers::BroadcastStream;
 use fleetcore::{BaseJournal, Command, CommunicationData, FireJournal, ReportJournal};
 use methods::{FIRE_ID, JOIN_ID, REPORT_ID, WAVE_ID, WIN_ID};
 
+// mod utils;
+
+/// Updates the turn counters for all players in a game.
+/// Sets the current player's want_turn_count to 0 and increments all other players' want_turn_count.
+fn update_turn_counters(game: &mut Game, current_player: &str) {
+    // Set current player's want_turn_count to 0
+    if let Some(player) = game.pmap.get_mut(current_player) {
+        player.want_turn_count = 0;
+    }
+
+    // Increment all players' want_turn_count
+    for (name, other_player) in game.pmap.iter_mut() {
+        if name != current_player {
+            other_player.want_turn_count += 1;
+        }
+    }
+}
+
 struct Player {
     name: String,
     current_state: Digest,
+    want_turn_count: u32, // Number of turns this player has not played
 }
 
 struct Game {
@@ -140,10 +159,22 @@ fn handle_join(shared: &SharedData, input_data: &CommunicationData) -> String {
     }
     let data: BaseJournal = input_data.receipt.journal.decode().unwrap();
     let mut gmap = shared.gmap.lock().unwrap();
+    // check if player is already in the game
+    if gmap.contains_key(&data.gameid) && gmap[&data.gameid].pmap.contains_key(&data.fleet) {
+        shared
+            .tx
+            .send(format!(
+                "Player {} already in game {}",
+                data.fleet, data.gameid
+            ))
+            .unwrap();
+        return "Player already in game".to_string();
+    }
     let game = gmap.entry(data.gameid.clone()).or_insert(Game {
         pmap: HashMap::new(),
         next_player: Some(data.fleet.clone()),
         next_report: None,
+        next_shot: None,
     });
     let player_inserted = game
         .pmap
@@ -151,9 +182,11 @@ fn handle_join(shared: &SharedData, input_data: &CommunicationData) -> String {
         .or_insert_with(|| Player {
             name: data.fleet.clone(),
             current_state: data.board.clone(),
+            want_turn_count: 1,
         })
         .name
         == data.fleet;
+
     let mesg = if player_inserted {
         format!("Joined game {}", data.gameid)
     } else {
@@ -235,14 +268,16 @@ fn handle_fire(shared: &SharedData, input_data: &CommunicationData) -> String {
     }
 
     // TODO: check player's current state, if board is empty/no boats
-    // Update the player's board statße
-    let player = game.pmap.get_mut(&data.fleet).unwrap();
 
     // Update game state - next player should be the target to report hit/miss
     // TODO: next_report should have more information about the shot, such as position
     game.next_player = Some(data.target.clone());
     game.next_report = Some(data.target.clone());
     game.next_shot = Some(data.pos);
+
+    // Update turn counters
+    update_turn_counters(game, &data.fleet);
+
     // Send notification about the fire action
     let pos_str = xy_pos(data.pos);
     shared
@@ -301,7 +336,6 @@ fn handle_report(shared: &SharedData, input_data: &CommunicationData) -> String 
             .unwrap();
         return "Not your turn to report".to_string();
     }
-
     // Check if we're expecting a report
     if game.next_report.is_none() {
         shared
@@ -313,7 +347,6 @@ fn handle_report(shared: &SharedData, input_data: &CommunicationData) -> String 
             .unwrap();
         return "No pending shot".to_string();
     }
-
     // TODO: TEST: Check from data if position is the same as the previously fired position, receive from game.next_report
     if game.next_shot.is_none() || game.next_shot.unwrap() != data.pos {
         shared
@@ -373,6 +406,9 @@ fn handle_report(shared: &SharedData, input_data: &CommunicationData) -> String 
     game.next_player = Some(shooter.clone());
     game.next_report = None;
 
+    // Update turn counters
+    update_turn_counters(game, &data.fleet);
+
     // TODO: Delete this if it anoys you, is debug message
     // Notify whose turn it is next
     shared
@@ -395,28 +431,76 @@ fn handle_wave(shared: &SharedData, input_data: &CommunicationData) -> String {
             .unwrap();
         return "Could not verify receipt".to_string();
     }
-
-    // For now, just log that a wave was received
-    shared.tx.send("Wave signal received".to_string()).unwrap();
-
-    // TODO: Debug message, could be removed
-    // If we know who should play next, notify them
-    if let Some(game) = shared.gmap.lock().unwrap().get(
-        &input_data
-            .receipt
-            .journal
-            .decode::<BaseJournal>()
-            .unwrap()
-            .gameid,
-    ) {
-        if let Some(next_player) = &game.next_player {
+    // Decode the journal data from the receipt
+    let data: BaseJournal = input_data.receipt.journal.decode().unwrap();
+    let mut gmap = shared.gmap.lock().unwrap();
+    // Check if the game exists
+    let game = match gmap.get_mut(&data.gameid) {
+        Some(game) => game,
+        None => {
             shared
                 .tx
-                .send(format!("It's {}'s turn to play", next_player))
+                .send(format!("Game {} not found", data.gameid))
                 .unwrap();
+            return "Game not found".to_string();
         }
+    };
+    // Check if the player exists in the game
+    if !game.pmap.contains_key(&data.fleet) {
+        shared
+            .tx
+            .send(format!(
+                "Player {} not found in game {}",
+                data.fleet, data.gameid
+            ))
+            .unwrap();
+        return "Player not found".to_string();
+    }
+    // Check if it's this player's turn
+    if game.next_player != Some(data.fleet.clone()) {
+        shared
+            .tx
+            .send(format!(
+                "Not {}'s turn to wave in game {}",
+                data.fleet, data.gameid
+            ))
+            .unwrap();
+        return "Not your turn to wave".to_string();
     }
 
+    // Move the current player to the end of the turn order list
+    //TODO: TEST, Wave turn - give the turn to the player who hasn't had a turn for the longest time
+
+    // Update turn counters
+    update_turn_counters(game, &data.fleet);
+    // get player's fleet with highest want_turn_count
+    let mut max_want_turn_count = 0;
+    let mut most_deserving_player = None;
+    for (name, player) in game.pmap.iter() {
+        if player.want_turn_count > max_want_turn_count {
+            max_want_turn_count = player.want_turn_count;
+            most_deserving_player = Some(name).clone();
+        }
+    }
+    // Set the next player to the one with the highest want_turn_count
+    game.next_player = most_deserving_player.cloned();
+    // check if no players are available to take the next turn
+    if most_deserving_player.is_none() {
+        shared
+            .tx
+            .send("No players available to take the next turn".to_string())
+            .unwrap();
+        return "No players available".to_string();
+    }
+    // Notify all players about the wave action
+    shared
+        .tx
+        .send(format!(
+            "Player {} waved, next player is {}",
+            data.fleet,
+            most_deserving_player.as_ref().unwrap()
+        ))
+        .unwrap();
     "OK".to_string()
 }
 
