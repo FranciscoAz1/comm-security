@@ -1,8 +1,8 @@
 use risc0_zkvm::{Digest, Receipt};
 use serde::{Deserialize, Serialize};
 
-// COnstant variable
-pub const DEAD: Digest = Digest::from([0u8; 32]);
+// Constant variable
+pub const DEAD: [u8; 32] = [0u8; 32];
 
 // Struct sent by the rust code for input on the methods join, wave and win
 // The struct is read by the zkvm code and the data is used to generate the output Journal

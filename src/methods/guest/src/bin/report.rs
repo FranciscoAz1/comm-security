@@ -20,10 +20,16 @@ fn main() {
 
     // For demonstration purposes, set the position to 1 to mark it as "shot"
     // TODO: correct this logic based on actual game board design
-    if input.pos < next_board.len() as u8 {
-        let idx = input.pos as usize;
-        next_board[idx] = 1;
-    }
+    // if input.pos < board_length.len() as u8 {
+    //     let idx = input.pos as usize;
+    //     next_board[idx] = 1;
+    // }
+
+    let idx = input.pos as usize;
+    next_board[idx] = 1;
+
+    print!("board: {:#?}", &input.board);
+    print!("next_board: {:#?}", &next_board);
 
     // Hash both the random number and next board state (random first for better security)
     let mut next_hasher = Sha256::new();
@@ -32,10 +38,6 @@ fn main() {
     let next_board_hash: [u8; 32] = next_hasher.finalize().into();
     let next_board_digest = Digest::from(next_board_hash);
 
-    // Check Death
-    if next_board.len() <= 0 {
-        next_board_digest = DEAD
-    }
     // Create the journal output
     let output = ReportJournal {
         gameid: input.gameid.clone(),
