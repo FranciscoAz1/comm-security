@@ -28,10 +28,12 @@ struct Player {
     name: String,
     current_state: Digest,
 }
+
 struct Game {
     pmap: HashMap<String, Player>,
     next_player: Option<String>,
     next_report: Option<String>,
+    next_shot: Option<u8>,
 }
 
 #[derive(Clone)]
@@ -235,13 +237,12 @@ fn handle_fire(shared: &SharedData, input_data: &CommunicationData) -> String {
     // TODO: check player's current state, if board is empty/no boats
     // Update the player's board statße
     let player = game.pmap.get_mut(&data.fleet).unwrap();
-    player.current_state = data.board;
 
     // Update game state - next player should be the target to report hit/miss
     // TODO: next_report should have more information about the shot, such as position
     game.next_player = Some(data.target.clone());
     game.next_report = Some(data.target.clone());
-
+    game.next_shot = Some(data.pos);
     // Send notification about the fire action
     let pos_str = xy_pos(data.pos);
     shared
@@ -313,9 +314,18 @@ fn handle_report(shared: &SharedData, input_data: &CommunicationData) -> String 
         return "No pending shot".to_string();
     }
 
-    // TODO: Check from data if position is the same as the previously fired position, receive from game.next_report
-
-    // TODO: Check from data if report is miss or hit, compare with game.next_report
+    // TODO: TEST: Check from data if position is the same as the previously fired position, receive from game.next_report
+    if game.next_shot.is_none() || game.next_shot.unwrap() != data.pos {
+        shared
+            .tx
+            .send(format!(
+                "Reported position {} does not match expected shot position in game {}",
+                xy_pos(data.pos),
+                data.gameid
+            ))
+            .unwrap();
+        return "Reported position mismatch".to_string();
+    }
 
     // TODO: If miss, check if data.board_next is the same as game.pmap[data.target].current_state
 
