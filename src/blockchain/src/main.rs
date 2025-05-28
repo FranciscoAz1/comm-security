@@ -187,31 +187,6 @@ fn handle_fire(shared: &SharedData, input_data: &CommunicationData) -> String {
             return "Game not found".to_string();
         }
     };
-
-    // Check if it's this player's turn to fire
-    if game.next_player != Some(data.fleet.clone()) {
-        shared
-            .tx
-            .send(format!(
-                "Not {}'s turn to fire in game {}",
-                data.fleet, data.gameid
-            ))
-            .unwrap();
-        return "Not your turn".to_string();
-    }
-
-    // Check if the player needs to report a shot result before they can fire
-    if game.next_report == Some(data.fleet.clone()) {
-        shared
-            .tx
-            .send(format!(
-                "Player {} must report the result of the received shot before firing in game {}",
-                data.fleet, data.gameid
-            ))
-            .unwrap();
-        return "Must report before firing".to_string();
-    }
-
     // Check if the target player exists in the game
     if !game.pmap.contains_key(&data.target) {
         shared
@@ -223,7 +198,28 @@ fn handle_fire(shared: &SharedData, input_data: &CommunicationData) -> String {
             .unwrap();
         return "Target not found".to_string();
     }
-
+    // Check if it's this player's turn to fire
+    if game.next_player != Some(data.fleet.clone()) {
+        shared
+            .tx
+            .send(format!(
+                "Not {}'s turn to fire in game {}",
+                data.fleet, data.gameid
+            ))
+            .unwrap();
+        return "Not your turn".to_string();
+    }
+    // Check if the player needs to report a shot result before they can fire
+    if game.next_report == Some(data.fleet.clone()) {
+        shared
+            .tx
+            .send(format!(
+                "Player {} must report the result of the received shot before firing in game {}",
+                data.fleet, data.gameid
+            ))
+            .unwrap();
+        return "Must report before firing".to_string();
+    }
     // Check that player is not targeting themselves
     if data.fleet == data.target {
         shared
@@ -236,11 +232,13 @@ fn handle_fire(shared: &SharedData, input_data: &CommunicationData) -> String {
         return "Cannot target yourself".to_string();
     }
 
-    // Update the player's board state
+    // TODO: check player's current state, if board is empty
+    // Update the player's board statße
     let player = game.pmap.get_mut(&data.fleet).unwrap();
     player.current_state = data.board;
 
     // Update game state - next player should be the target to report hit/miss
+    // TODO: next_report should have more information about the shot, such as position
     game.next_player = Some(data.target.clone());
     game.next_report = Some(data.target.clone());
 
@@ -303,7 +301,7 @@ fn handle_report(shared: &SharedData, input_data: &CommunicationData) -> String 
         return "Not your turn to report".to_string();
     }
 
-    // Check if we're expecting a report from this player about the correct shooter
+    // Check if we're expecting a report
     if game.next_report.is_none() {
         shared
             .tx
@@ -315,12 +313,15 @@ fn handle_report(shared: &SharedData, input_data: &CommunicationData) -> String 
         return "No pending shot".to_string();
     }
 
-    // TODO: Check if position is the same as the fired position maybe not
+    // TODO: Check from data if position is the same as the previously fired position, receive from game.next_report
 
-    // TODO: In case miss, verify if the hash in pmap matches the data.board, and data.board_next
+    // TODO: Check from data if report is miss or hit, compare with game.next_report
 
-    // TODO: In case of hit, verify if the data.board matches pmap hash, anda data.board_next does not match
-    // TODO: What is data.board_next is a cheat?
+    // TODO: If miss, check if data.board_next is the same as game.pmap[data.target].current_state
+
+    // TODO: If hit, check if data.board is the same as game.pmap[data.target].current_state
+
+    // TODO: Any other checks?
 
     // Clone shooter before mutably borrowing game
     let shooter = game.next_report.as_ref().unwrap().clone();
@@ -332,6 +333,7 @@ fn handle_report(shared: &SharedData, input_data: &CommunicationData) -> String 
     // Format the position for display
     let pos_str = xy_pos(data.pos);
 
+    // TODO: fix this, we receive HIT/MISS in data, no need for the => format! macro
     // Send notification about the report result (It is shit, maybe could be shorter)
     let result_message = match data.report.as_str().to_ascii_lowercase().as_str() {
         "hit" => format!(
@@ -359,6 +361,7 @@ fn handle_report(shared: &SharedData, input_data: &CommunicationData) -> String 
     game.next_player = Some(shooter.clone());
     game.next_report = None;
 
+    // TODO: Delete this if it anoys you, is debug message
     // Notify whose turn it is next
     shared
         .tx
@@ -384,6 +387,7 @@ fn handle_wave(shared: &SharedData, input_data: &CommunicationData) -> String {
     // For now, just log that a wave was received
     shared.tx.send("Wave signal received".to_string()).unwrap();
 
+    // TODO: Debug message, could be removed
     // If we know who should play next, notify them
     if let Some(game) = shared.gmap.lock().unwrap().get(
         &input_data
@@ -420,8 +424,6 @@ fn handle_win(shared: &SharedData, input_data: &CommunicationData) -> String {
         .tx
         .send(format!("Player claims victory in game"))
         .unwrap();
-
-    // Game is over, no need to notify next player
 
     "OK".to_string()
 }

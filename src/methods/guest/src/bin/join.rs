@@ -3,6 +3,7 @@ use risc0_zkvm::guest::env;
 use risc0_zkvm::sha::Digest;
 use sha2::{Digest as _, Sha256};
 
+// TODO: (Extra) add signature to the message, then a verifier must be implemented in blockchain
 fn main() {
     //NOSSO!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     // Read the input

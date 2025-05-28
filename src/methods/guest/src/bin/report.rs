@@ -19,7 +19,7 @@ fn main() {
     let mut next_board = input.board.clone();
 
     // For demonstration purposes, set the position to 1 to mark it as "shot"
-    // TODO: correct this logic based on actual game rules
+    // TODO: correct this logic based on actual game board design
     if input.pos < next_board.len() as u8 {
         let idx = input.pos as usize;
         next_board[idx] = 1;
@@ -34,12 +34,12 @@ fn main() {
 
     // Create the journal output
     let output = ReportJournal {
-        gameid: input.gameid,
-        fleet: input.fleet,
-        report: input.target, // In our implementation, target field contains the report value (Hit/Miss)
-        pos: input.pos,
-        board: board_digest,
-        next_board: next_board_digest,
+        gameid: input.gameid.clone(),
+        fleet: input.fleet.clone(),
+        report: input.target.clone(), // In our implementation, target field contains the report value (Hit/Miss)
+        pos: input.pos.clone(),
+        board: board_digest.clone(),
+        next_board: next_board_digest.clone(),
     };
 
     // Commit the output to the journal
