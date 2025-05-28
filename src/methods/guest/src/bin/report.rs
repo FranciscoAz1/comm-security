@@ -18,19 +18,18 @@ fn main() {
     // this would modify the board based on the hit/miss report)
     let mut next_board = input.board.clone();
 
-    // For demonstration purposes, set the position to 1 to mark it as "shot"
-    // TODO: correct this logic based on actual game board design
+    // TODO: correct this logic based on actual game board design. We want to hit a flit, and get a new board that is updated from that fleet
     // if input.pos < board_length.len() as u8 {
     //     let idx = input.pos as usize;
     //     next_board[idx] = 1;
     // }
-
     let idx = input.pos as usize;
     next_board[idx] = 1;
 
     print!("board: {:#?}", &input.board);
     print!("next_board: {:#?}", &next_board);
 
+    // until here is testing
     // Hash both the random number and next board state (random first for better security)
     let mut next_hasher = Sha256::new();
     next_hasher.update(input.random.as_bytes());
