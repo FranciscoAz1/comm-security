@@ -232,7 +232,7 @@ fn handle_fire(shared: &SharedData, input_data: &CommunicationData) -> String {
         return "Cannot target yourself".to_string();
     }
 
-    // TODO: check player's current state, if board is empty
+    // TODO: check player's current state, if board is empty/no boats
     // Update the player's board statße
     let player = game.pmap.get_mut(&data.fleet).unwrap();
     player.current_state = data.board;
@@ -321,6 +321,8 @@ fn handle_report(shared: &SharedData, input_data: &CommunicationData) -> String 
 
     // TODO: If hit, check if data.board is the same as game.pmap[data.target].current_state
 
+    // TODO: Check if the position is a boat that has already been hit before (maybe this part should be done in methods)
+
     // TODO: Any other checks?
 
     // Clone shooter before mutably borrowing game
@@ -333,7 +335,7 @@ fn handle_report(shared: &SharedData, input_data: &CommunicationData) -> String 
     // Format the position for display
     let pos_str = xy_pos(data.pos);
 
-    // TODO: fix this, we receive HIT/MISS in data, no need for the => format! macro
+    // TODO: fix this, we receive HIT/MISS/WATER in data, no need for the => format! macro
     // Send notification about the report result (It is shit, maybe could be shorter)
     let result_message = match data.report.as_str().to_ascii_lowercase().as_str() {
         "hit" => format!(
@@ -418,6 +420,7 @@ fn handle_win(shared: &SharedData, input_data: &CommunicationData) -> String {
         return "Could not verify receipt".to_string();
     }
 
+    // TODO: Check if the boards of all players are empty (all ships sunk)
     // For now, just log that a win was claimed
     // In a complete implementation, you would verify the win condition
     shared

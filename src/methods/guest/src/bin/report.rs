@@ -1,4 +1,4 @@
-use fleetcore::{FireInputs, ReportJournal};
+use fleetcore::{FireInputs, ReportJournal, DEAD};
 use risc0_zkvm::guest::env;
 use risc0_zkvm::sha::Digest;
 use sha2::{Digest as _, Sha256};
@@ -32,6 +32,10 @@ fn main() {
     let next_board_hash: [u8; 32] = next_hasher.finalize().into();
     let next_board_digest = Digest::from(next_board_hash);
 
+    // Check Death
+    if next_board.len() <= 0 {
+        next_board_digest = DEAD
+    }
     // Create the journal output
     let output = ReportJournal {
         gameid: input.gameid.clone(),

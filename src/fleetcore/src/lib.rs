@@ -1,5 +1,8 @@
+use risc0_zkvm::{Digest, Receipt};
 use serde::{Deserialize, Serialize};
-use risc0_zkvm::{Receipt, Digest};
+
+// COnstant variable
+pub const DEAD: Digest = Digest::from([0u8; 32]);
 
 // Struct sent by the rust code for input on the methods join, wave and win
 // The struct is read by the zkvm code and the data is used to generate the output Journal
@@ -24,11 +27,17 @@ pub struct FireInputs {
 }
 
 // Enum used to define the command that will be sent to the server by the host in the communication packet
-#[derive(Deserialize,Serialize)]
-pub enum Command {Join, Fire, Report, Wave, Win}
+#[derive(Deserialize, Serialize)]
+pub enum Command {
+    Join,
+    Fire,
+    Report,
+    Wave,
+    Win,
+}
 
 // Struct used to specify the packet sent from the client to the blockchain server
-#[derive(Deserialize,Serialize)]
+#[derive(Deserialize, Serialize)]
 pub struct CommunicationData {
     pub cmd: Command,
     pub receipt: Receipt,
@@ -60,5 +69,5 @@ pub struct ReportJournal {
     pub report: String,
     pub pos: u8,
     pub board: Digest,
-    pub next_board: Digest
+    pub next_board: Digest,
 }
