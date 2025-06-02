@@ -129,11 +129,39 @@ async fn logs(Extension(shared): Extension<SharedData>) -> impl IntoResponse {
 
     axum::response::sse::Sse::new(stream)
 }
-
+/// Converts a position number (0-99) to a coordinate string (e.g., "A0")
 fn xy_pos(pos: u8) -> String {
     let x = pos % 10;
     let y = pos / 10;
     format!("{}{}", (x + 65) as char, y)
+}
+
+/// Converts a coordinate string (e.g., "A0") back to a position number (0-99)
+/// This is the inverse of the xy_pos function
+fn pos_xy(coord: &str) -> Result<u8, &'static str> {
+    let chars: Vec<char> = coord.chars().collect();
+
+    if chars.len() < 2 {
+        return Err("Coordinate string is too short");
+    }
+
+    // First character should be a letter A-J
+    let x_char = chars[0].to_ascii_uppercase();
+    if x_char < 'A' || x_char > 'J' {
+        return Err("X coordinate must be a letter from A to J");
+    }
+    let x = (x_char as u8) - 65; // Convert 'A' to 0, 'B' to 1, etc.
+
+    // Second+ characters should form a number 0-9
+    let y_str: String = chars[1..].iter().collect();
+    let y = match y_str.parse::<u8>() {
+        Ok(num) if num < 10 => num,
+        Ok(_) => return Err("Y coordinate must be between 0 and 9"),
+        Err(_) => return Err("Y coordinate must be a valid number"),
+    };
+
+    // Calculate position
+    Ok(y * 10 + x)
 }
 
 async fn smart_contract(
@@ -347,7 +375,7 @@ fn handle_report(shared: &SharedData, input_data: &CommunicationData) -> String 
             .unwrap();
         return "No pending shot".to_string();
     }
-    // TODO: TEST: Check from data if position is the same as the previously fired position, receive from game.next_report
+    // Check from data if position is the same as the previously fired position, receive from game.next_report
     if game.next_shot.is_none() || game.next_shot.unwrap() != data.pos {
         shared
             .tx
@@ -359,6 +387,7 @@ fn handle_report(shared: &SharedData, input_data: &CommunicationData) -> String 
             .unwrap();
         return "Reported position mismatch".to_string();
     }
+    // TODO: Check if correct hit or miss is reported
 
     // TODO: If miss, check if data.board_next is the same as game.pmap[data.target].current_state
 
@@ -468,9 +497,6 @@ fn handle_wave(shared: &SharedData, input_data: &CommunicationData) -> String {
         return "Not your turn to wave".to_string();
     }
 
-    // Move the current player to the end of the turn order list
-    //TODO: TEST, Wave turn - give the turn to the player who hasn't had a turn for the longest time
-
     // Update turn counters
     update_turn_counters(game, &data.fleet);
     // get player's fleet with highest want_turn_count
@@ -515,7 +541,19 @@ fn handle_win(shared: &SharedData, input_data: &CommunicationData) -> String {
     }
 
     // TODO: Check if the boards of all players are empty (all ships sunk)
-    // For now, just log that a win was claimed
+    // get player from game
+    let data: BaseJournal = input_data.receipt.journal.decode().unwrap();
+    let mut gmap = shared.gmap.lock().unwrap();
+    let game = match gmap.get_mut(&data.gameid) {
+        Some(game) => game,
+        None => {
+            shared
+                .tx
+                .send(format!("Game {} not found", data.gameid))
+                .unwrap();
+            return "Game not found".to_string();
+        }
+    };
     // In a complete implementation, you would verify the win condition
     shared
         .tx

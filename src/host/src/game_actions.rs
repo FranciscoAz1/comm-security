@@ -59,7 +59,7 @@ pub async fn fire(idata: FormData) -> String {
     };
 
     // Calculate position from x and y coordinates (as a single byte)
-    let pos = x * 10 + y;
+    let pos = y * 10 + x;
 
     // Create the input data for the zkVM
     let input = fleetcore::FireInputs {
@@ -85,7 +85,7 @@ pub async fn report(idata: FormData) -> String {
     };
 
     // Calculate position from x and y coordinates (as a single byte)
-    let pos = x * 10 + y;
+    let pos = y * 10 + x;
 
     // Create the input data for the zkVM
     let input = fleetcore::FireInputs {
