@@ -294,7 +294,17 @@ fn handle_fire(shared: &SharedData, input_data: &CommunicationData) -> String {
             .unwrap();
         return "Cannot target yourself".to_string();
     }
-
+    // Check if board is correctly synced
+    if data.board != game.pmap.get(&data.fleet).unwrap().current_state {
+        shared
+            .tx
+            .send(format!(
+                "Player {} tried to fire with a different board state in game {}",
+                data.fleet, data.gameid
+            ))
+            .unwrap();
+        return "Cannot fire with a different board state".to_string();
+    }
     // TODO: check player's current state, if board is empty/no boats
 
     // Update game state - next player should be the target to report hit/miss
@@ -402,7 +412,7 @@ fn handle_report(shared: &SharedData, input_data: &CommunicationData) -> String 
 
     // Update the reporting player's board state
     let player = game.pmap.get_mut(&data.fleet).unwrap();
-    player.current_state = data.board;
+    player.current_state = data.next_board;
 
     // Format the position for display
     let pos_str = xy_pos(data.pos);
