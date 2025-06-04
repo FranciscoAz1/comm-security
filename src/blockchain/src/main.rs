@@ -399,28 +399,9 @@ fn handle_report(shared: &SharedData, input_data: &CommunicationData) -> String 
             .unwrap();
         return "Reported position mismatch".to_string();
     }
-    // TODO: Check if correct hit or miss is reported TO TEST!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
-
-    // Verify the proof using the receipt
-    if input_data
-        .receipt
-        .verify_with_inputs(REPORT_ID, &data.board)
-        .is_err()
-    {
-        shared
-            .tx
-            .send(format!(
-                "Invalid proof for report action at position {} in game {}",
-                xy_pos(data.pos),
-                data.gameid
-            ))
-            .unwrap();
-        return "Invalid proof".to_string();
-    }
-
     // TODO: If miss, check if data.board_next is the same as game.pmap[data.target].current_state TO TEST
     if data.report.to_ascii_lowercase() == "miss" {
-        if data.next_board != game.pmap.get(&data.target).unwrap().current_state {
+        if data.next_board != game.pmap.get(&data.fleet).unwrap().current_state {
             shared
                 .tx
                 .send(format!(
@@ -435,7 +416,7 @@ fn handle_report(shared: &SharedData, input_data: &CommunicationData) -> String 
     // TODO: Check if the position is a boat that has already been hit before (maybe this part should be done in methods)
     if game
         .pmap
-        .get(&data.target)
+        .get(&data.fleet)
         .unwrap()
         .shots_hit
         .contains(&data.pos)
@@ -456,7 +437,7 @@ fn handle_report(shared: &SharedData, input_data: &CommunicationData) -> String 
     // TODO: If hit, check if data.board is the same as game.pmap[data.target].current_state TO TEST!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
 
     if data.report.to_ascii_lowercase() == "hit" {
-        if data.next_board == game.pmap.get(&data.target).unwrap().current_state {
+        if data.next_board == game.pmap.get(&data.fleet).unwrap().current_state {
             shared
                 .tx
                 .send(format!(
@@ -467,7 +448,7 @@ fn handle_report(shared: &SharedData, input_data: &CommunicationData) -> String 
             return "Next board state should not match".to_string();
         }
         // Add the shot position to the target player's shots_hit
-        let target_player = game.pmap.get_mut(&data.target).unwrap();
+        let target_player = game.pmap.get_mut(&data.fleet).unwrap();
         target_player.shots_hit.push(data.pos);
     }
 
