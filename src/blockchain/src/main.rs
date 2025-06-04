@@ -46,6 +46,7 @@ struct Player {
     name: String,
     current_state: Digest,
     want_turn_count: u32, // Number of turns this player has not played
+    shots_hit: Vec<u8>, // Positions where this player has hit a ship
 }
 
 struct Game {
@@ -430,7 +431,23 @@ fn handle_report(shared: &SharedData, input_data: &CommunicationData) -> String 
         }
     }
 
+
+    // TODO: Check if the position is a boat that has already been hit before (maybe this part should be done in methods)
+    if game.pmap.get(&data.target).unwrap().shots_hit.contains(&data.pos) && data.report.to_ascii_lowercase() != "water" {
+        shared
+            .tx
+            .send(format!(
+                "Bad report: Position {} was already hit, but reported as {} in game {}",
+                xy_pos(data.pos),
+                data.report,
+                data.gameid
+            ))
+            .unwrap();
+        return "Bad report".to_string();
+    }
+
     // TODO: If hit, check if data.board is the same as game.pmap[data.target].current_state TO TEST!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
+
 
     if data.report.to_ascii_lowercase() == "hit" {
         if data.next_board == game.pmap.get(&data.target).unwrap().current_state {
@@ -443,12 +460,13 @@ fn handle_report(shared: &SharedData, input_data: &CommunicationData) -> String 
                 .unwrap();
             return "Next board state should not match".to_string();
         }
+        // Add the shot position to the target player's shots_hit
+        let target_player = game.pmap.get_mut(&data.target).unwrap();
+        target_player.shots_hit.push(data.pos);
     }
+    
 
-    // TODO: Check if the position is a boat that has already been hit before (maybe this part should be done in methods)
-
-    // TODO: Any other checks?
-
+  
     // Clone shooter before mutably borrowing game
     let shooter = game.next_report.as_ref().unwrap().clone();
 
