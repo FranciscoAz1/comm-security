@@ -88,7 +88,7 @@ fn main() {
     let output = ReportJournal {
         gameid: input.gameid.clone(),
         fleet: input.fleet.clone(),
-        report: input.target.clone(), // In our implementation, target field contains the report value (Hit/Miss)
+        report: if hit { "Hit".to_string() } else { "Miss".to_string() },
         pos: input.pos.clone(),
         board: board_digest.clone(),
         next_board: next_board_digest.clone(),
