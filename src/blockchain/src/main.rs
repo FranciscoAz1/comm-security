@@ -212,6 +212,7 @@ fn handle_join(shared: &SharedData, input_data: &CommunicationData) -> String {
             name: data.fleet.clone(),
             current_state: data.board.clone(),
             want_turn_count: 1,
+            shots_hit: Vec::new(),
         })
         .name
         == data.fleet;
@@ -398,8 +399,26 @@ fn handle_report(shared: &SharedData, input_data: &CommunicationData) -> String 
             .unwrap();
         return "Reported position mismatch".to_string();
     }
+    // TODO: Check if correct hit or miss is reported TO TEST!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
 
-    // TODO: If miss, check if data.board_next is the same as game.pmap[data.target].current_state TO TEST!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
+    // Verify the proof using the receipt
+    if input_data
+        .receipt
+        .verify_with_inputs(REPORT_ID, &data.board)
+        .is_err()
+    {
+        shared
+            .tx
+            .send(format!(
+                "Invalid proof for report action at position {} in game {}",
+                xy_pos(data.pos),
+                data.gameid
+            ))
+            .unwrap();
+        return "Invalid proof".to_string();
+    }
+
+    // TODO: If miss, check if data.board_next is the same as game.pmap[data.target].current_state TO TEST
     if data.report.to_ascii_lowercase() == "miss" {
         if data.next_board != game.pmap.get(&data.target).unwrap().current_state {
             shared

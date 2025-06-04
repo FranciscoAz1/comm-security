@@ -42,15 +42,6 @@ fn main() {
     let board_hash: [u8; 32] = hasher.finalize().into();
     let board_digest = Digest::from(board_hash);
 
-    // Simulate updating the board after the report (in a real implementation,
-    // this would modify the board based on the hit/miss report)
-
-    // TODO: correct this logic based on actual game board design. We want to hit a flit, and get a new board that is updated from that fleet
-    // if input.pos < board_length.len() as u8 {
-    //     let idx = input.pos as usize;
-    //     next_board[idx] = 1;
-    // }
-
     println!("board: {:#?}", &input.board);
     // Convert position number to string representation for pos_xy function
     let pos_str = format!(
@@ -88,7 +79,11 @@ fn main() {
     let output = ReportJournal {
         gameid: input.gameid.clone(),
         fleet: input.fleet.clone(),
-        report: if hit { "Hit".to_string() } else { "Miss".to_string() },
+        report: if hit {
+            "Hit".to_string()
+        } else {
+            "Miss".to_string()
+        },
         pos: input.pos.clone(),
         board: board_digest.clone(),
         next_board: next_board_digest.clone(),
