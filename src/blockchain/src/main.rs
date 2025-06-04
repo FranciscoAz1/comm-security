@@ -397,11 +397,53 @@ fn handle_report(shared: &SharedData, input_data: &CommunicationData) -> String 
             .unwrap();
         return "Reported position mismatch".to_string();
     }
-    // TODO: Check if correct hit or miss is reported
+    // TODO: Check if correct hit or miss is reported TO TEST!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
 
-    // TODO: If miss, check if data.board_next is the same as game.pmap[data.target].current_state
+    // Verify the proof using the receipt
+    if input_data
+        .receipt
+        .verify_with_inputs(REPORT_ID, &data.board)
+        .is_err()
+    {
+        shared
+            .tx
+            .send(format!(
+                "Invalid proof for report action at position {} in game {}",
+                xy_pos(data.pos),
+                data.gameid
+            ))
+            .unwrap();
+        return "Invalid proof".to_string();
+    }
 
-    // TODO: If hit, check if data.board is the same as game.pmap[data.target].current_state
+    // TODO: If miss, check if data.board_next is the same as game.pmap[data.target].current_state TO TEST!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
+    if data.report.to_ascii_lowercase() == "miss" {
+        if data.next_board != game.pmap.get(&data.target).unwrap().current_state {
+            shared
+                .tx
+                .send(format!(
+                    "Next board state does not match the target's current state in game {}",
+                    data.gameid
+                ))
+                .unwrap();
+            return "Next board state mismatch".to_string();
+        }
+    }
+
+    // TODO: If hit, check if data.board is the same as game.pmap[data.target].current_state TO TEST!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
+
+    if data.report.to_ascii_lowercase() == "hit" {
+        if data.next_board == game.pmap.get(&data.target).unwrap().current_state {
+            shared
+                .tx
+                .send(format!(
+                    "Next board state matches the target's current state in game {}, but it should not",
+                    data.gameid
+                ))
+                .unwrap();
+            return "Next board state should not match".to_string();
+        }
+    }
 
     // TODO: Check if the position is a boat that has already been hit before (maybe this part should be done in methods)
 
