@@ -46,7 +46,7 @@ struct Player {
     name: String,
     current_state: Digest,
     want_turn_count: u32, // Number of turns this player has not played
-    shots_hit: Vec<u8>, // Positions where this player has hit a ship
+    shots_hit: Vec<u8>,   // Positions where this player has hit a ship
 }
 
 struct Game {
@@ -398,24 +398,6 @@ fn handle_report(shared: &SharedData, input_data: &CommunicationData) -> String 
             .unwrap();
         return "Reported position mismatch".to_string();
     }
-    // TODO: Check if correct hit or miss is reported TO TEST!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
-
-    // Verify the proof using the receipt
-    if input_data
-        .receipt
-        .verify_with_inputs(REPORT_ID, &data.board)
-        .is_err()
-    {
-        shared
-            .tx
-            .send(format!(
-                "Invalid proof for report action at position {} in game {}",
-                xy_pos(data.pos),
-                data.gameid
-            ))
-            .unwrap();
-        return "Invalid proof".to_string();
-    }
 
     // TODO: If miss, check if data.board_next is the same as game.pmap[data.target].current_state TO TEST!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
     if data.report.to_ascii_lowercase() == "miss" {
@@ -431,9 +413,15 @@ fn handle_report(shared: &SharedData, input_data: &CommunicationData) -> String 
         }
     }
 
-
     // TODO: Check if the position is a boat that has already been hit before (maybe this part should be done in methods)
-    if game.pmap.get(&data.target).unwrap().shots_hit.contains(&data.pos) && data.report.to_ascii_lowercase() != "water" {
+    if game
+        .pmap
+        .get(&data.target)
+        .unwrap()
+        .shots_hit
+        .contains(&data.pos)
+        && data.report.to_ascii_lowercase() != "water"
+    {
         shared
             .tx
             .send(format!(
@@ -447,7 +435,6 @@ fn handle_report(shared: &SharedData, input_data: &CommunicationData) -> String 
     }
 
     // TODO: If hit, check if data.board is the same as game.pmap[data.target].current_state TO TEST!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
-
 
     if data.report.to_ascii_lowercase() == "hit" {
         if data.next_board == game.pmap.get(&data.target).unwrap().current_state {
@@ -464,9 +451,7 @@ fn handle_report(shared: &SharedData, input_data: &CommunicationData) -> String 
         let target_player = game.pmap.get_mut(&data.target).unwrap();
         target_player.shots_hit.push(data.pos);
     }
-    
 
-  
     // Clone shooter before mutably borrowing game
     let shooter = game.next_report.as_ref().unwrap().clone();
 
