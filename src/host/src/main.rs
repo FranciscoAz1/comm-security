@@ -3,15 +3,17 @@
 #![allow(unused_variables)]
 #![allow(dead_code)]
 
+use axum::debug_handler;
 use axum::{
     extract::Form,
     response::Html,
     routing::{get, post},
     Router,
 };
-use axum::debug_handler;
-use tokio::signal;
+use axum_server::tls_rustls::RustlsConfig;
 use nanoid::nanoid;
+use std::path::PathBuf;
+use tokio::signal;
 
 use host::{fire, join_game, report, wave, win, FormData};
 use std::net::SocketAddr;
@@ -63,7 +65,10 @@ fn render_html(
     let response_html = if let Some(response) = response {
         if response == "OK" {
             if gameid != "" {
-                format!("Playing Game: <b>{}</b> with fleet's ID: <b>{}</b> ", gameid, fleetid)
+                format!(
+                    "Playing Game: <b>{}</b> with fleet's ID: <b>{}</b> ",
+                    gameid, fleetid
+                )
             } else {
                 "Not in game".to_string()
             }
@@ -92,17 +97,29 @@ fn render_html(
 
 #[tokio::main]
 async fn main() {
+    // Initialize the default crypto provider for rustls
+    rustls::crypto::aws_lc_rs::default_provider()
+        .install_default()
+        .expect("Failed to install crypto provider");
+
     // Create state that implements Send + Sync for use with Axum
     let app = Router::new()
         .route("/", get(index))
         .route("/submit", post(submit));
 
-    let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
-    println!("Listening on {}", addr);
-    let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
+    // Configure TLS
+    let config = RustlsConfig::from_pem_file(
+        PathBuf::from("certs/host-cert.pem"),
+        PathBuf::from("certs/host-key.pem"),
+    )
+    .await
+    .expect("Failed to load TLS certificates");
 
-    axum::serve(listener, app)
-        .with_graceful_shutdown(shutdown_signal())
+    let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
+    println!("Listening on https://{}", addr);
+
+    axum_server::bind_rustls(addr, config)
+        .serve(app.into_make_service())
         .await
         .unwrap();
 }

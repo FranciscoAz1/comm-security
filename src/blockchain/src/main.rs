@@ -9,9 +9,11 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
+use axum_server::tls_rustls::RustlsConfig;
 use futures::stream::StreamExt;
 use rand::{seq::IteratorRandom, SeedableRng};
 use risc0_zkvm::Digest;
+use std::path::PathBuf;
 use std::{
     collections::HashMap,
     error::Error,
@@ -65,6 +67,11 @@ struct SharedData {
 
 #[tokio::main]
 async fn main() {
+    // Initialize the default crypto provider for rustls
+    rustls::crypto::aws_lc_rs::default_provider()
+        .install_default()
+        .expect("Failed to install crypto provider");
+
     // Create a broadcast channel for log messages
     let (tx, _rx) = broadcast::channel::<String>(100);
     let shared = SharedData {
@@ -74,20 +81,27 @@ async fn main() {
     };
 
     // Build our application with a route
-
     let app = Router::new()
         .route("/", get(index))
         .route("/logs", get(logs))
         .route("/chain", post(smart_contract))
         .layer(Extension(shared));
 
-    // Run our app with hyper
-    //let addr = SocketAddr::from(([127, 0, 0, 1], 3001));
+    // Configure TLS
+    let config = RustlsConfig::from_pem_file(
+        PathBuf::from("certs/blockchain-cert.pem"),
+        PathBuf::from("certs/blockchain-key.pem"),
+    )
+    .await
+    .expect("Failed to load TLS certificates");
 
     let addr = SocketAddr::from(([0, 0, 0, 0], 3001));
-    println!("Listening on http://{}", addr);
-    let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
-    axum::serve(listener, app).await.unwrap();
+    println!("Listening on https://{}", addr);
+
+    axum_server::bind_rustls(addr, config)
+        .serve(app.into_make_service())
+        .await
+        .unwrap();
 }
 
 // Handler to serve the HTML page
