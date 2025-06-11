@@ -217,6 +217,19 @@ fn handle_join(shared: &SharedData, input_data: &CommunicationData) -> String {
         next_report: None,
         next_shot: None,
     });
+    // Check if the player's board is all zeros (invalid board)
+    let zero_digest = Digest::from([0u8; 32]);
+    if data.board == zero_digest {
+        shared
+            .tx
+            .send(format!(
+                "Player {} tried to join game {} with an invalid board",
+                data.fleet, data.gameid
+            ))
+            .unwrap();
+        return "Invalid board: cannot be all zeros".to_string();
+    }
+
     let player_inserted = game
         .pmap
         .entry(data.fleet.clone())

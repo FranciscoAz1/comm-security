@@ -46,7 +46,6 @@ pub async fn join_game(idata: FormData) -> String {
         board: board.clone(),
         random: random.clone(),
     };
-    // print!("Join game input: {:#?}", input);
     //TODO:  send message to host page
 
     // Generate proof
