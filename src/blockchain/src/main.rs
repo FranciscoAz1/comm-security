@@ -26,8 +26,6 @@ use tokio_stream::wrappers::BroadcastStream;
 use fleetcore::{BaseJournal, Command, CommunicationData, FireJournal, ReportJournal};
 use methods::{FIRE_ID, JOIN_ID, REPORT_ID, WAVE_ID, WIN_ID};
 
-// mod utils;
-
 /// Updates the turn counters for all players in a game.
 /// Sets the current player's want_turn_count to 0 and increments all other players' want_turn_count.
 fn update_turn_counters(game: &mut Game, current_player: &str) {
