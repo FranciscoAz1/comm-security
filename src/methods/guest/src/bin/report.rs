@@ -51,8 +51,6 @@ fn main() {
 
     // check hit or miss
     let xy = xy.unwrap();
-    let mut hit = false;
-
     // Create a new board by filtering out the hit position
     let mut next_board = input.board.clone();
     next_board.retain(|&cell| {

@@ -189,7 +189,7 @@ async fn smart_contract(
         Command::Win => handle_win(&shared, &input_data),
     }
 }
- 
+
 fn handle_join(shared: &SharedData, input_data: &CommunicationData) -> String {
     if input_data.receipt.verify(JOIN_ID).is_err() {
         shared
@@ -366,6 +366,8 @@ fn handle_report(shared: &SharedData, input_data: &CommunicationData) -> String 
     let data: ReportJournal = input_data.receipt.journal.decode().unwrap();
     let mut gmap = shared.gmap.lock().unwrap();
 
+    let mut water = false; // Flag to indicate if the report is a water hit
+
     // Check if the game exists
     let game = match gmap.get_mut(&data.gameid) {
         Some(game) => game,
@@ -411,8 +413,18 @@ fn handle_report(shared: &SharedData, input_data: &CommunicationData) -> String 
             .unwrap();
         return "Reported position mismatch".to_string();
     }
-    // TODO: If miss, check if data.board_next is the same as game.pmap[data.target].current_state TO TEST
-    if data.report.to_ascii_lowercase() == "miss" {
+    // Check if water
+    if game
+        .pmap
+        .get(&data.fleet)
+        .unwrap()
+        .shots_hit
+        .contains(&data.pos)
+    {
+        water = true;
+    }
+    // miss checks
+    else if data.report.to_ascii_lowercase() == "miss" {
         if data.next_board != game.pmap.get(&data.fleet).unwrap().current_state {
             shared
                 .tx
@@ -424,31 +436,8 @@ fn handle_report(shared: &SharedData, input_data: &CommunicationData) -> String 
             return "Next board state mismatch".to_string();
         }
     }
-
-    // TODO: Check if the position is a boat that has already been hit before (maybe this part should be done in methods)
-    if game
-        .pmap
-        .get(&data.fleet)
-        .unwrap()
-        .shots_hit
-        .contains(&data.pos)
-        && data.report.to_ascii_lowercase() != "water"
-    {
-        shared
-            .tx
-            .send(format!(
-                "Bad report: Position {} was already hit, but reported as {} in game {}",
-                xy_pos(data.pos),
-                data.report,
-                data.gameid
-            ))
-            .unwrap();
-        return "Bad report".to_string();
-    }
-
-    // TODO: If hit, check if data.board is the same as game.pmap[data.target].current_state TO TEST!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
-
-    if data.report.to_ascii_lowercase() == "hit" {
+    // hit checks
+    else if data.report.to_ascii_lowercase() == "hit" {
         if data.next_board == game.pmap.get(&data.fleet).unwrap().current_state {
             shared
                 .tx
@@ -459,9 +448,12 @@ fn handle_report(shared: &SharedData, input_data: &CommunicationData) -> String 
                 .unwrap();
             return "Next board state should not match".to_string();
         }
-        // Add the shot position to the target player's shots_hit
-        let target_player = game.pmap.get_mut(&data.fleet).unwrap();
-        target_player.shots_hit.push(data.pos);
+        // Add the hit position to the shooter's shots_hit vector
+        game.pmap
+            .get_mut(&data.fleet)
+            .unwrap()
+            .shots_hit
+            .push(data.pos);
     }
 
     // Clone shooter before mutably borrowing game
@@ -474,9 +466,15 @@ fn handle_report(shared: &SharedData, input_data: &CommunicationData) -> String 
     // Format the position for display
     let pos_str = xy_pos(data.pos);
 
-    // TODO: fix this, we receive HIT/MISS/WATER in data, no need for the => format! macro
+    // Determine the report string to use in the result message
+    let report = if water {
+        // If the report is a water hit, we don't need to update the next_shot
+        "water".to_string()
+    } else {
+        data.report.clone()
+    };
     // Send notification about the report result (It is shit, maybe could be shorter)
-    let result_message = match data.report.as_str().to_ascii_lowercase().as_str() {
+    let result_message = match report.as_str().to_ascii_lowercase().as_str() {
         "hit" => format!(
             "Player {} reports HIT at position {} from player {} in game {}",
             data.fleet, pos_str, shooter, data.gameid
