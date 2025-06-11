@@ -12,6 +12,10 @@ tokio = { version = "1.40.0", features = ["full"] }
 serde = { version = "1.0.210", features = ["derive"] }
 serde_derive = "1.0"
 fleetcore = { path = "../fleetcore" }
-reqwest = { version = "0.12.8", features = ["json"] }
+reqwest = { version = "0.12.8", features = ["json", "rustls-tls"] }
 nanoid = "0.3"
 percent-encoding = "2.1"
+axum-server = { version = "0.7.1", features = ["tls-rustls"] }
+tokio-rustls = "0.26.0"
+rustls = "0.23.0"
+rustls-pemfile = "2.0.0"

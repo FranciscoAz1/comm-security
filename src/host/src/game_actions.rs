@@ -5,7 +5,9 @@ use methods::{FIRE_ELF, JOIN_ELF, REPORT_ELF, WAVE_ELF, WIN_ELF};
 use risc0_zkvm::{default_prover, ExecutorEnv, Receipt};
 use std::sync::Arc;
 
-use crate::{send_receipt, unmarshal_data, unmarshal_fire, unmarshal_report, FormData};
+use crate::{
+    send_receipt, unmarshal_data, unmarshal_fire, unmarshal_report, unmarshal_wave, FormData,
+};
 
 // Helper function to generate a proof without threading issues
 fn generate_proof(
@@ -107,7 +109,7 @@ pub async fn report(idata: FormData) -> String {
 }
 
 pub async fn wave(idata: FormData) -> String {
-    let (gameid, fleetid, board, random) = match unmarshal_data(&idata) {
+    let (gameid, fleetid, random) = match unmarshal_wave(&idata) {
         Ok(values) => values,
         Err(err) => return err,
     };
@@ -116,7 +118,7 @@ pub async fn wave(idata: FormData) -> String {
     let input = fleetcore::BaseInputs {
         gameid: gameid.clone(),
         fleet: fleetid.clone(),
-        board: board.clone(),
+        board: vec![], // Board is not used in wave, so we can pass an empty vector
         random: random.clone(),
     };
 

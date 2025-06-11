@@ -33,7 +33,6 @@ fn pos_xy(coord: &str) -> Result<u8, &'static str> {
 fn main() {
     // Read the input
     let input: FireInputs = env::read();
-    println!("REPORT PROOFING");
 
     // Hash both the random number and current board to create a commitment (random first for better security)
     let mut hasher = Sha256::new();
@@ -42,7 +41,6 @@ fn main() {
     let board_hash: [u8; 32] = hasher.finalize().into();
     let board_digest = Digest::from(board_hash);
 
-    println!("board: {:#?}", &input.board);
     // Convert position number to string representation for pos_xy function
     let pos_str = format!(
         "{}{}",
@@ -50,9 +48,7 @@ fn main() {
         input.pos / 10
     );
     let xy = pos_xy(&pos_str);
-    println!("xy: {:#?} pos_str: {:#?}", &xy, &pos_str);
 
-    // print!("board: {:#?}", &input.board);
     // check hit or miss
     let xy = xy.unwrap();
     let mut hit = false;
@@ -61,13 +57,11 @@ fn main() {
     let mut next_board = input.board.clone();
     next_board.retain(|&cell| {
         if cell == xy {
-            hit = true;
             false // Remove this cell
         } else {
             true // Keep this cell
         }
     });
-    println!("next_board: {:#?}", &next_board);
     // Hash both the random number and next board state (random first for better security)
     let mut next_hasher = Sha256::new();
     next_hasher.update(input.random.as_bytes());
@@ -79,11 +73,7 @@ fn main() {
     let output = ReportJournal {
         gameid: input.gameid.clone(),
         fleet: input.fleet.clone(),
-        report: if hit {
-            "Hit".to_string()
-        } else {
-            "Miss".to_string()
-        },
+        report: input.target.clone(),
         pos: input.pos.clone(),
         board: board_digest.clone(),
         next_board: next_board_digest.clone(),
