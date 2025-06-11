@@ -177,7 +177,7 @@ async fn smart_contract(
         Command::Win => handle_win(&shared, &input_data),
     }
 }
-
+ 
 fn handle_join(shared: &SharedData, input_data: &CommunicationData) -> String {
     if input_data.receipt.verify(JOIN_ID).is_err() {
         shared
@@ -609,11 +609,29 @@ fn handle_win(shared: &SharedData, input_data: &CommunicationData) -> String {
             return "Game not found".to_string();
         }
     };
-    // In a complete implementation, you would verify the win condition
-    shared
-        .tx
-        .send(format!("Player claims victory in game"))
-        .unwrap();
 
-    "OK".to_string()
+    // check if all players have shots_hit of length x = 10
+    if game
+        .pmap
+        .values()
+        .all(|player| player.shots_hit.len() == 1 || player.name == data.fleet)
+    {
+        shared
+            .tx
+            .send(format!(
+                "Player {} claims victory in game {}",
+                data.fleet, data.gameid
+            ))
+            .unwrap();
+        return "OK".to_string();
+    } else {
+        shared
+            .tx
+            .send(format!(
+                "Player {} tried to claim victory, but not all ships are sunk in game {}",
+                data.fleet, data.gameid
+            ))
+            .unwrap();
+        return "Not all ships are sunk".to_string();
+    }
 }
