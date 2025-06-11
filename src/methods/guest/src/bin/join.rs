@@ -51,7 +51,7 @@ fn is_valid_ship_shape(
     let mut ship_positions = Vec::new();
     let mut queue = VecDeque::new();
     let mut visited = HashSet::new();
-    
+
     queue.push_back((start_row, start_col));
     visited.insert((start_row, start_col));
 
@@ -83,11 +83,13 @@ fn is_valid_ship_shape(
     ship_positions.sort();
 
     // Check if all positions are in the same row (horizontal ship)
-    let same_row = ship_positions.iter().all(|(r, _)| *r == ship_positions[0].0);
+    let same_row = ship_positions
+        .iter()
+        .all(|(r, _)| *r == ship_positions[0].0);
     if same_row {
         // Check if columns are consecutive
         for i in 1..ship_positions.len() {
-            if ship_positions[i].1 != ship_positions[i-1].1 + 1 {
+            if ship_positions[i].1 != ship_positions[i - 1].1 + 1 {
                 return false;
             }
         }
@@ -95,11 +97,13 @@ fn is_valid_ship_shape(
     }
 
     // Check if all positions are in the same column (vertical ship)
-    let same_col = ship_positions.iter().all(|(_, c)| *c == ship_positions[0].1);
+    let same_col = ship_positions
+        .iter()
+        .all(|(_, c)| *c == ship_positions[0].1);
     if same_col {
         // Check if rows are consecutive
         for i in 1..ship_positions.len() {
-            if ship_positions[i].0 != ship_positions[i-1].0 + 1 {
+            if ship_positions[i].0 != ship_positions[i - 1].0 + 1 {
                 return false;
             }
         }
@@ -116,7 +120,7 @@ fn validate_ship_spacing(
 ) -> Result<(), String> {
     // For each ship, check that no other ship is adjacent (including diagonals)
     let mut visited = HashSet::new();
-    
+
     for &(start_row, start_col) in positions {
         if visited.contains(&(start_row, start_col)) {
             continue;
@@ -161,7 +165,9 @@ fn validate_ship_spacing(
                     // Check bounds
                     if check_row < BOARD_SIZE && check_col < BOARD_SIZE {
                         // If there's a ship cell that's not part of current ship
-                        if grid[check_row][check_col] && !ship_cells.contains(&(check_row, check_col)) {
+                        if grid[check_row][check_col]
+                            && !ship_cells.contains(&(check_row, check_col))
+                        {
                             return Err(format!(
                                 "Ships are too close: ship cell at ({}, {}) is adjacent to another ship at ({}, {})",
                                 ship_row, ship_col, check_row, check_col
@@ -228,7 +234,10 @@ fn validate_board(board: &[u8]) -> Result<(), String> {
 
         // Validate ship shape (must be straight line)
         if !is_valid_ship_shape(&grid, &positions, row, col) {
-            return Err(format!("Ship starting at ({}, {}) is not in a straight line", row, col));
+            return Err(format!(
+                "Ship starting at ({}, {}) is not in a straight line",
+                row, col
+            ));
         }
 
         match ship_size {
@@ -258,6 +267,7 @@ fn main() {
     risc0_zkvm::guest::env::log(&format!("[DEBUG] Full Input: {:#?}", input));
 
     // Validate board configuration
+    // if let Err(e) = unmarshal_board(&input.board) {
     if let Err(e) = validate_board(&input.board) {
         risc0_zkvm::guest::env::log(&format!("[ERROR] Board validation failed: {}", e));
 
