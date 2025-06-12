@@ -92,6 +92,7 @@ pub fn unmarshal_data(idata: &FormData) -> Result<(String, String, Vec<u8>, Stri
                 .map(|decoded| {
                     decoded
                         .split(',')
+                        .filter(|s| !s.is_empty())
                         .map(|s| {
                             s.parse::<u8>()
                                 .map_err(|_| "Invalid number in Board Placement".to_string())
@@ -185,6 +186,7 @@ pub fn unmarshal_report(
     idata: &FormData,
 ) -> Result<(String, String, Vec<u8>, String, String, u8, u8), String> {
     let (gameid, fleetid, board, random) = unmarshal_data(idata)?;
+
     let (x, y) = get_coordinates(&idata.rx, &idata.ry)?;
     let report = idata
         .report
