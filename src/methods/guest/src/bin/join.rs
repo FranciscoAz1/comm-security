@@ -214,9 +214,6 @@ fn validate_board(board: &[u8]) -> Result<(), String> {
         ));
     }
 
-    // Validate ship spacing (no adjacent ships)
-    validate_ship_spacing(&grid, &positions)?;
-
     // Expected ship counts: 2x1, 2x2, 1x4
     let mut size1 = 0;
     let mut size2 = 0;

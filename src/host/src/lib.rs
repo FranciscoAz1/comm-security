@@ -92,7 +92,6 @@ pub fn unmarshal_data(idata: &FormData) -> Result<(String, String, Vec<u8>, Stri
                 .map(|decoded| {
                     decoded
                         .split(',')
-                        .filter(|s| !s.is_empty())
                         .map(|s| {
                             s.parse::<u8>()
                                 .map_err(|_| "Invalid number in Board Placement".to_string())

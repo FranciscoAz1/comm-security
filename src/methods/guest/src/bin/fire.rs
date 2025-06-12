@@ -7,10 +7,6 @@ fn main() {
     // Read the input
     let input: FireInputs = env::read();
 
-    // check that the board is not empty
-    if input.board.is_empty() {
-        panic!("Board cannot be empty");
-    }
     // Hash both the random number and board to create a commitment (random first for better security)
     let mut hasher = Sha256::new();
     hasher.update(input.random.as_bytes());

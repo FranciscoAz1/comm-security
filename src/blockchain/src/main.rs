@@ -227,7 +227,7 @@ fn handle_join(shared: &SharedData, input_data: &CommunicationData) -> String {
                 data.fleet, data.gameid
             ))
             .unwrap();
-        return "Invalid board: cannot be all zeros".to_string();
+        return "Invalid board: needs 2 of 1 slot, 2 of 2 slots and 1 of 4 slots".to_string();
     }
 
     let player_inserted = game
@@ -321,6 +321,17 @@ fn handle_fire(shared: &SharedData, input_data: &CommunicationData) -> String {
             .unwrap();
         return "Cannot target yourself".to_string();
     }
+    // Check if play alive
+    if game.pmap.get(&data.fleet).unwrap().shots_hit.len() >= 10 {
+        shared
+            .tx
+            .send(format!(
+                "Player {} tried to fire, but is already out of the game {}",
+                data.fleet, data.gameid
+            ))
+            .unwrap();
+        return "Player already out of the game".to_string();
+    }
     // Check if board is correctly synced
     if data.board != game.pmap.get(&data.fleet).unwrap().current_state {
         shared
@@ -332,10 +343,8 @@ fn handle_fire(shared: &SharedData, input_data: &CommunicationData) -> String {
             .unwrap();
         return "Cannot fire with a different board state".to_string();
     }
-    // TODO: check player's current state, if board is empty/no boats
 
     // Update game state - next player should be the target to report hit/miss
-    // TODO: next_report should have more information about the shot, such as position
     game.next_player = Some(data.target.clone());
     game.next_report = Some(data.target.clone());
     game.next_shot = Some(data.pos);
@@ -489,20 +498,20 @@ fn handle_report(shared: &SharedData, input_data: &CommunicationData) -> String 
     // Send notification about the report result (It is shit, maybe could be shorter)
     let result_message = match report.as_str().to_ascii_lowercase().as_str() {
         "hit" => format!(
-            "Player {} reports HIT at position {} from player {} in game {}",
-            data.fleet, pos_str, shooter, data.gameid
+            "Player {} reports HIT at position {} in game {}",
+            data.fleet, pos_str, data.gameid
         ),
         "miss" => format!(
-            "Player {} reports MISS at position {} from player {} in game {}",
-            data.fleet, pos_str, shooter, data.gameid
+            "Player {} reports MISS at position {} in game {}",
+            data.fleet, pos_str, data.gameid
         ),
         "water" => format!(
-            "Player {} reports WATER (already hit) at position {} from player {} in game {}",
-            data.fleet, pos_str, shooter, data.gameid
+            "Player {} reports WATER (already hit) at position {} in game {}",
+            data.fleet, pos_str, data.gameid
         ),
         _ => format!(
-            "Player {} reports UNKNOWN RESULT at position {} from player {} in game {}",
-            data.fleet, pos_str, shooter, data.gameid
+            "Player {} reports UNKNOWN RESULT at position {} in game {}",
+            data.fleet, pos_str, data.gameid
         ),
     };
 
@@ -552,6 +561,17 @@ fn handle_wave(shared: &SharedData, input_data: &CommunicationData) -> String {
             return "Game not found".to_string();
         }
     };
+    // Check if the player needs to report a shot result before they can fire
+    if game.next_report == Some(data.fleet.clone()) {
+        shared
+            .tx
+            .send(format!(
+                "Player {} must report the result of the received shot before waving in game {}",
+                data.fleet, data.gameid
+            ))
+            .unwrap();
+        return "Must report before waving".to_string();
+    }
     // Check if the player exists in the game
     if !game.pmap.contains_key(&data.fleet) {
         shared
@@ -632,12 +652,44 @@ fn handle_win(shared: &SharedData, input_data: &CommunicationData) -> String {
             return "Game not found".to_string();
         }
     };
-
+    // Check if the player needs to report a shot result before they can fire
+    if game.next_report == Some(data.fleet.clone()) {
+        shared
+            .tx
+            .send(format!(
+                "Player {} must report the result of the received shot before firing in game {}",
+                data.fleet, data.gameid
+            ))
+            .unwrap();
+        return "Must report before winning".to_string();
+    }
+    // Check if player is alive
+    if game.pmap.get(&data.fleet).unwrap().shots_hit.len() >= 10 {
+        shared
+            .tx
+            .send(format!(
+                "Player {} tried to fire, but is already out of the game {}",
+                data.fleet, data.gameid
+            ))
+            .unwrap();
+        return "Player already out of the game".to_string();
+    }
+    // Check if board is correctly synced
+    if data.board != game.pmap.get(&data.fleet).unwrap().current_state {
+        shared
+            .tx
+            .send(format!(
+                "Player {} tried to fire with a different board state in game {}",
+                data.fleet, data.gameid
+            ))
+            .unwrap();
+        return "Cannot fire with a different board state".to_string();
+    }
     // check if all players have shots_hit of length x = 10
     if game
         .pmap
         .values()
-        .all(|player| player.shots_hit.len() == 1 || player.name == data.fleet)
+        .all(|player| player.shots_hit.len() == 10 || player.name == data.fleet)
     {
         shared
             .tx
