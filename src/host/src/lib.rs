@@ -81,24 +81,26 @@ pub fn unmarshal_data(idata: &FormData) -> Result<(String, String, Vec<u8>, Stri
         .clone()
         .ok_or_else(|| "You must provide a Random Seed".to_string())?;
 
-    let board = idata
-        .board
-        .as_ref()
-        .ok_or_else(|| "You must provide a Board Placement".to_string())
-        .and_then(|id| {
-            percent_encoding::percent_decode_str(id)
-                .decode_utf8()
-                .map_err(|_| "Invalid Board Placement".to_string())
-                .map(|decoded| {
+    let board = match &idata.board {
+        Some(id) if !id.is_empty() => percent_encoding::percent_decode_str(id)
+            .decode_utf8()
+            .map_err(|_| "Invalid Board Placement".to_string())
+            .and_then(|decoded| {
+                if decoded.trim().is_empty() {
+                    Ok(Vec::new())
+                } else {
                     decoded
                         .split(',')
+                        .filter(|s| !s.is_empty())
                         .map(|s| {
                             s.parse::<u8>()
                                 .map_err(|_| "Invalid number in Board Placement".to_string())
                         })
                         .collect::<Result<Vec<u8>, String>>()
-                })
-        })??;
+                }
+            })?,
+        _ => Vec::new(),
+    };
 
     Ok((gameid, fleetid, board, random))
 }
