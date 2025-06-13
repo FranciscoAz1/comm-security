@@ -44,16 +44,16 @@ fn update_turn_counters(game: &mut Game, current_player: &str) {
 
 struct Player {
     name: String,
-    current_state: Digest,
-    want_turn_count: u32, // Number of turns this player has not played
-    shots_hit: Vec<u8>,   // Positions where this player has hit a ship
+    current_state: Digest, // Board commitment
+    want_turn_count: u32,  // Fairness counter for turn enforcement
+    shots_hit: Vec<u8>,    // Public hit record
 }
 
 struct Game {
-    pmap: HashMap<String, Player>,
-    next_player: Option<String>,
-    next_report: Option<String>,
-    next_shot: Option<u8>,
+    pmap: HashMap<String, Player>, // Player registry
+    next_player: Option<String>,   // Turn enforcement
+    next_report: Option<String>,   // Action sequencing
+    next_shot: Option<u8>,         // Shot position to report
 }
 
 #[derive(Clone)]
