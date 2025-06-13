@@ -108,7 +108,7 @@ pub async fn report(idata: FormData) -> String {
 }
 
 pub async fn wave(idata: FormData) -> String {
-    let (gameid, fleetid, random) = match unmarshal_wave(&idata) {
+    let (gameid, fleetid, board, random) = match unmarshal_data(&idata) {
         Ok(values) => values,
         Err(err) => return err,
     };
@@ -117,7 +117,7 @@ pub async fn wave(idata: FormData) -> String {
     let input = fleetcore::BaseInputs {
         gameid: gameid.clone(),
         fleet: fleetid.clone(),
-        board: vec![], // Board is not used in wave, so we can pass an empty vector
+        board: board.clone(),
         random: random.clone(),
     };
 

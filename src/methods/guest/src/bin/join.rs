@@ -44,7 +44,6 @@ fn discover_ship(
 /// Validates that a ship is placed in a straight line (horizontal or vertical)
 fn is_valid_ship_shape(
     grid: &[[bool; BOARD_SIZE]; BOARD_SIZE],
-    positions: &HashSet<(usize, usize)>,
     start_row: usize,
     start_col: usize,
 ) -> bool {
@@ -113,75 +112,6 @@ fn is_valid_ship_shape(
     false // Ship is neither horizontal nor vertical
 }
 
-/// Checks if ships have proper spacing (no adjacent ships including diagonals)
-fn validate_ship_spacing(
-    grid: &[[bool; BOARD_SIZE]; BOARD_SIZE],
-    positions: &HashSet<(usize, usize)>,
-) -> Result<(), String> {
-    // For each ship, check that no other ship is adjacent (including diagonals)
-    let mut visited = HashSet::new();
-
-    for &(start_row, start_col) in positions {
-        if visited.contains(&(start_row, start_col)) {
-            continue;
-        }
-
-        // Get all cells of this ship
-        let mut ship_cells = HashSet::new();
-        let mut queue = VecDeque::new();
-        queue.push_back((start_row, start_col));
-        visited.insert((start_row, start_col));
-
-        while let Some((row, col)) = queue.pop_front() {
-            ship_cells.insert((row, col));
-
-            // Find connected cells of the same ship
-            for (dr, dc) in &[(0, 1), (1, 0), (0, -1), (-1, 0)] {
-                let new_row = (row as isize + dr) as usize;
-                let new_col = (col as isize + dc) as usize;
-
-                if new_row < BOARD_SIZE
-                    && new_col < BOARD_SIZE
-                    && grid[new_row][new_col]
-                    && !visited.contains(&(new_row, new_col))
-                {
-                    visited.insert((new_row, new_col));
-                    queue.push_back((new_row, new_col));
-                }
-            }
-        }
-
-        // Check all 8 directions around each cell of this ship
-        for &(ship_row, ship_col) in &ship_cells {
-            for dr in -1..=1 {
-                for dc in -1..=1 {
-                    if dr == 0 && dc == 0 {
-                        continue; // Skip the ship cell itself
-                    }
-
-                    let check_row = (ship_row as isize + dr) as usize;
-                    let check_col = (ship_col as isize + dc) as usize;
-
-                    // Check bounds
-                    if check_row < BOARD_SIZE && check_col < BOARD_SIZE {
-                        // If there's a ship cell that's not part of current ship
-                        if grid[check_row][check_col]
-                            && !ship_cells.contains(&(check_row, check_col))
-                        {
-                            return Err(format!(
-                                "Ships are too close: ship cell at ({}, {}) is adjacent to another ship at ({}, {})",
-                                ship_row, ship_col, check_row, check_col
-                            ));
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    Ok(())
-}
-
 fn validate_board(board: &[u8]) -> Result<(), String> {
     // Convert positions into a grid (10x10)
     let mut grid = [[false; BOARD_SIZE]; BOARD_SIZE];
@@ -230,7 +160,7 @@ fn validate_board(board: &[u8]) -> Result<(), String> {
         let ship_size = discover_ship(&grid, row, col, &mut visited);
 
         // Validate ship shape (must be straight line)
-        if !is_valid_ship_shape(&grid, &positions, row, col) {
+        if !is_valid_ship_shape(&grid, row, col) {
             return Err(format!(
                 "Ship starting at ({}, {}) is not in a straight line",
                 row, col

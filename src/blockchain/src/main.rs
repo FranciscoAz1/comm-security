@@ -321,7 +321,7 @@ fn handle_fire(shared: &SharedData, input_data: &CommunicationData) -> String {
             .unwrap();
         return "Cannot target yourself".to_string();
     }
-    // Check if play alive
+    // Check if play is not alive
     if game.pmap.get(&data.fleet).unwrap().shots_hit.len() >= 10 {
         shared
             .tx
@@ -423,6 +423,17 @@ fn handle_report(shared: &SharedData, input_data: &CommunicationData) -> String 
             .unwrap();
         return "No pending shot".to_string();
     }
+    // Check if board is correctly synced
+    if data.board != game.pmap.get(&data.fleet).unwrap().current_state {
+        shared
+            .tx
+            .send(format!(
+                "Player {} tried to report with a different board state in game {}",
+                data.fleet, data.gameid
+            ))
+            .unwrap();
+        return "Cannot report with a different board state".to_string();
+    }
     // Check from data if position is the same as the previously fired position, receive from game.next_report
     if game.next_shot.is_none() || game.next_shot.unwrap() != data.pos {
         shared
@@ -447,7 +458,9 @@ fn handle_report(shared: &SharedData, input_data: &CommunicationData) -> String 
     }
     // miss checks
     else if data.report.to_ascii_lowercase() == "miss" {
-        if data.next_board != game.pmap.get(&data.fleet).unwrap().current_state {
+        if data.next_board != game.pmap.get(&data.fleet).unwrap().current_state
+            && data.board != data.next_board
+        {
             shared
                 .tx
                 .send(format!(
@@ -460,7 +473,7 @@ fn handle_report(shared: &SharedData, input_data: &CommunicationData) -> String 
     }
     // hit checks
     else if data.report.to_ascii_lowercase() == "hit" {
-        if data.next_board == game.pmap.get(&data.fleet).unwrap().current_state {
+        if data.board != game.pmap.get(&data.fleet).unwrap().current_state {
             shared
                 .tx
                 .send(format!(
@@ -594,7 +607,17 @@ fn handle_wave(shared: &SharedData, input_data: &CommunicationData) -> String {
             .unwrap();
         return "Not your turn to wave".to_string();
     }
-
+    // Check if board is correctly synced
+    if data.board != game.pmap.get(&data.fleet).unwrap().current_state {
+        shared
+            .tx
+            .send(format!(
+                "Player {} tried to wave with a different board state in game {}",
+                data.fleet, data.gameid
+            ))
+            .unwrap();
+        return "Cannot wave with a different board state".to_string();
+    }
     // Update turn counters
     update_turn_counters(game, &data.fleet);
     // get player's fleet with highest want_turn_count
@@ -663,7 +686,7 @@ fn handle_win(shared: &SharedData, input_data: &CommunicationData) -> String {
             .unwrap();
         return "Must report before winning".to_string();
     }
-    // Check if player is alive
+    // Check if player is not alive
     if game.pmap.get(&data.fleet).unwrap().shots_hit.len() >= 10 {
         shared
             .tx
@@ -689,7 +712,7 @@ fn handle_win(shared: &SharedData, input_data: &CommunicationData) -> String {
     if game
         .pmap
         .values()
-        .all(|player| player.shots_hit.len() == 10 || player.name == data.fleet)
+        .all(|player| player.shots_hit.len() >= 10 || player.name == data.fleet)
     {
         shared
             .tx
