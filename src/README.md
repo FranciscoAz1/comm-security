@@ -117,3 +117,17 @@ docker exec -it chain0 bash cargo run --bin blockchain
 # Fix problem
 
 cargo install cargo-risczero --force
+
+# Permission denied
+
+sudo chmod +x generate_certs.sh
+
+# In case openSSL is not found
+
+apt update && apt install openssl
+
+# If certificates already exist run
+
+rm -rf certs/
+mkdir -p certs
+./generate_certs.sh
